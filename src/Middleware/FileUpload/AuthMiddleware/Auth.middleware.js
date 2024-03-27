@@ -8,6 +8,7 @@ export const authMiddleware = async (req, res, next) => {
       res.send({ error: true, message: "invalid authrization" });
     }
     //  check token
+
     const verifyToken = await jwt.verify(
       authToken,
       process.env.ACCESS_TOKEN_SECRET

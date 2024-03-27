@@ -124,7 +124,11 @@ const logOutController = async (req, res) => {
       },
     });
 
-    res.send({ success: true, message: "LogOut Successfully" });
+    // clear cookie
+    res
+      .clearCookie("accessToken", options)
+      .clearCookie("refreshToken", options)
+      .send({ success: true, message: "LogOut Successfully" });
   } catch (error) {
     res.send({ error: true, message: "user routes is not found" });
   }
