@@ -1,6 +1,11 @@
 import express from "express";
-import { registerController } from "../Controllers/user.controller.js";
+import {
+  logInController,
+  logOutController,
+  registerController,
+} from "../Controllers/user.controller.js";
 import { fileUploadService } from "../Middleware/FileUpload/FileUpload.middleware.js";
+import { authMiddleware } from "../Middleware/FileUpload/AuthMiddleware/Auth.middleware.js";
 const allRoute = express.Router();
 
 allRoute.route("/user").post(
@@ -10,5 +15,7 @@ allRoute.route("/user").post(
   ]),
   registerController
 );
+allRoute.route("/logIn").post(logInController);
+allRoute.route("/logOut").post(authMiddleware, logOutController);
 
 export default allRoute;

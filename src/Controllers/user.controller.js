@@ -1,5 +1,18 @@
 import { User } from "../Models/user.model.js";
 import cloudinaryService from "../Utils/CloudinaryService/CloudinaryService.js";
+import { options } from "../Utils/Options.js";
+
+const generatedAccessAndRefreshToken = async (id) => {
+  if (id) {
+    const user = await User.findById(id);
+    const accessToken = await user.generatedAccessToken();
+    const refreshToken = await user.generatedRefreshToken();
+    user.refreshToken = refreshToken;
+    await user.save({ validateBeforeSave: false });
+
+    return { accessToken, refreshToken };
+  }
+};
 
 const registerController = async (req, res) => {
   try {
@@ -61,9 +74,60 @@ const registerController = async (req, res) => {
 
 const logInController = async (req, res) => {
   try {
+    const { email, password } = req.body;
+    // check user data is valid
+    if ([email, password].some((filed) => filed.trim() == "")) {
+      return res.send({ success: false, messag: "All Filed Are Required" });
+    }
+    const existingUser = await User.findOne({ email });
+    if (!existingUser) {
+      return res.send({ success: false, message: "Invalid User Credentials" });
+    }
+    // check password
+    const isPasswordCorrect = await existingUser.isPasswordCorrect(password);
+    if (!isPasswordCorrect) {
+      return res.send({
+        success: false,
+        message: "Invalid UserPass Credentials",
+      });
+    }
+    // generateAccessAndRefreshToken
+    const { accessToken, refreshToken } = await generatedAccessAndRefreshToken(
+      existingUser?._id
+    );
+    const userFind = await User.findById(existingUser?._id).select(
+      "-password -refreshToken"
+    );
+    if (userFind) {
+      res
+        .status(200)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", refreshToken, options)
+        .send({
+          success: true,
+          message: "LogIn Successfully",
+          refreshToken,
+          accessToken,
+          data: userFind,
+        });
+    }
   } catch (error) {
     res.send({ error: true, message: "user routes is not found" });
   }
 };
 
-export { registerController, logInController };
+const logOutController = async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(req.user?._id, {
+      $set: {
+        refreshToken: null,
+      },
+    });
+
+    res.send({ success: true, message: "LogOut Successfully" });
+  } catch (error) {
+    res.send({ error: true, message: "user routes is not found" });
+  }
+};
+
+export { registerController, logInController, logOutController };
