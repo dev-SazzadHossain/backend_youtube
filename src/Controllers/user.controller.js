@@ -134,4 +134,46 @@ const logOutController = async (req, res) => {
   }
 };
 
-export { registerController, logInController, logOutController };
+const changeUserPassword = async (req, res) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+    if ([newPassword, oldPassword].some((filed) => filed.trim() == "")) {
+      return res.send({
+        success: false,
+        message: "newPassword Filed is Required",
+      });
+    }
+
+    const user = await User.findById(req.user?._id);
+    if (!user) {
+      return res.send({
+        success: false,
+        message: "Invalid User Access",
+      });
+    }
+    // check old password
+    const isPasswordCorrect = await user.isPasswordCorrect(oldPassword);
+    if (!isPasswordCorrect) {
+      return res.send({
+        success: false,
+        message: "incorrect User oldPassowrd",
+      });
+    }
+    user.password = newPassword;
+    await user.save({ validateBeforeSave: false });
+    res
+      .status(200)
+      .send({ success: true, message: "Password Change Successfully" });
+
+    // hasing
+  } catch (error) {
+    res.send({ error: true, message: "Routes Not Found" });
+  }
+};
+
+export {
+  registerController,
+  logInController,
+  logOutController,
+  changeUserPassword,
+};
