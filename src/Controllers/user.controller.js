@@ -171,9 +171,73 @@ const changeUserPassword = async (req, res) => {
   }
 };
 
+const updateUserProfile = async (req, res) => {
+  try {
+    const { username, email } = req.body;
+    console.log(email);
+    if ([username, email].some((filed) => filed.trim() == "")) {
+      return res.send({ success: false, message: "All Filed are Required" });
+    }
+    const user = await User.findByIdAndUpdate(
+      req.user?._id,
+      {
+        $set: {
+          username,
+          email,
+        },
+      },
+      { new: true }
+    ).select("-password -refreshToken");
+
+    if (!user) {
+      return res.send({ success: false, message: "Invalid User Access" });
+    }
+    res.send({
+      success: true,
+      message: "User Update Profile Successfully",
+      data: user,
+    });
+  } catch (error) {
+    res.send({ error: true, message: "Routes Not Found" });
+  }
+};
+
+const updateUserAvatar = async (req, res) => {
+  try {
+    const filePath = req.file?.path;
+
+    if (!filePath) {
+      return res.send({ success: false, message: "File Is Required" });
+    }
+    const fileUrl = await cloudinaryService(filePath);
+
+    if (!fileUrl?.url) {
+      return res.send({ success: false, message: "File Url Is Required" });
+    }
+    const updateFile = await User.findByIdAndUpdate(
+      req.user?._id,
+      {
+        $set: {
+          avatar: fileUrl?.url,
+        },
+      },
+      { new: true }
+    ).select("-password -refreshToken");
+    res.status(200).send({
+      success: true,
+      message: "User Avatar Update SuccessFully",
+      data: updateFile,
+    });
+  } catch (error) {
+    res.send({ error: true, message: "Routes Not Found" });
+  }
+};
+
 export {
   registerController,
   logInController,
   logOutController,
   changeUserPassword,
+  updateUserProfile,
+  updateUserAvatar,
 };
